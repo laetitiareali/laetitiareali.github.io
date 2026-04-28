@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>CV - Laetitia Réali</title>
+
+  <style>
+    :root {
+      --bg: rgba(18, 24, 30, 0.74);
+      --bg-min: rgba(18, 24, 30, 0.86);
+      --border: rgba(255, 255, 255, 0.18);
+      --button: rgba(255, 255, 255, 0.13);
+      --button-hover: rgba(255, 255, 255, 0.22);
+      --text: #ffffff;
+      --shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
+      --ease: cubic-bezier(.2, .8, .2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #050607;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+    }
+
+    .pdf-viewer {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #050607;
+    }
+
+    .bar-position {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      padding: 0 14px;
+      pointer-events: none;
+    }
+
+    .glass-bar {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 204px;
+      height: 58px;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: var(--bg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      overflow: hidden;
+      transition:
+        width 260ms var(--ease),
+        background 260ms ease,
+        box-shadow 260ms ease,
+        transform 260ms var(--ease);
+      will-change: width, transform;
+    }
+
+    .glass-bar::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.22),
+        rgba(255,255,255,0.04) 45%,
+        rgba(255,255,255,0.13)
+      );
+      opacity: 0.8;
+    }
+
+    .glass-bar.is-minimized {
+      width: 58px;
+      background: var(--bg-min);
+      transform: translateY(1px);
+    }
+
+    .bar-btn {
+      position: relative;
+      z-index: 1;
+      width: 46px;
+      height: 46px;
+      flex: 0 0 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      color: var(--text);
+      background: var(--button);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
+      cursor: pointer;
+      text-decoration: none;
+      outline: none;
+      transition:
+        opacity 180ms ease,
+        transform 220ms var(--ease),
+        background 160ms ease;
+    }
+
+    .bar-btn:hover {
+      background: var(--button-hover);
+    }
+
+    .bar-btn:active {
+      transform: scale(0.92);
+    }
+
+    .bar-btn svg {
+      width: 22px;
+      height: 22px;
+      display: block;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .bar-action {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .glass-bar.is-minimized .bar-action {
+      opacity: 0;
+      transform: scale(0.65);
+      pointer-events: none;
+    }
+
+    .glass-bar.is-minimized .bar-action {
+      position: absolute;
+    }
+
+    .toggle-icon-plus {
+      opacity: 0;
+      transform: scale(0.65);
+      transform-origin: center;
+      transition: opacity 160ms ease, transform 220ms var(--ease);
+    }
+
+    .glass-bar.is-minimized .toggle-icon-plus {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 14px;
+      background: rgba(15, 18, 22, 0.84);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 12px 34px rgba(0,0,0,0.28);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-50%) translateY(8px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 520px) {
+      .bar-position {
+        bottom: calc(14px + env(safe-area-inset-bottom));
+      }
+
+      .glass-bar {
+        width: 188px;
+        height: 56px;
+        gap: 7px;
+        padding: 5px;
+      }
+
+      .glass-bar.is-minimized {
+        width: 56px;
+      }
+
+      .bar-btn {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+      }
+
+      .bar-btn svg {
+        width: 21px;
+        height: 21px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .glass-bar,
+      .bar-btn,
+      .toggle-icon-plus,
+      .toast {
+        transition: none;
+      }
+    }
+
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .glass-bar,
+      .toast {
+        background: rgba(18, 24, 30, 0.92);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <iframe
+    class="pdf-viewer"
+    src="public/Laetitia-Reali-ESMS.pdf#toolbar=0&navpanes=0&scrollbar=1"
+    title="CV PDF"
+  ></iframe>
+
+  <div class="bar-position">
+    <div class="glass-bar" id="glassBar">
+      <button class="bar-btn" id="toggleBtn" type="button" aria-label="Minimiser la barre">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 12h12"></path>
+          <path class="toggle-icon-plus" d="M12 6v12"></path>
+        </svg>
+      </button>
+
+      <a
+        class="bar-btn bar-action"
+        href="public/Laetitia-Reali-ESMS.pdf"
+        download="Laetitia-Reali-ESMS.pdf"
+        aria-label="Télécharger le PDF"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 4v10"></path>
+          <path d="M8 10l4 4 4-4"></path>
+          <path d="M6 20h12"></path>
+        </svg>
+      </a>
+
+      <button class="bar-btn bar-action" id="shareBtn" type="button" aria-label="Partager le site">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="18" cy="5" r="2.7"></circle>
+          <circle cx="6" cy="12" r="2.7"></circle>
+          <circle cx="18" cy="19" r="2.7"></circle>
+          <path d="M8.4 10.7l7.2-4.4"></path>
+          <path d="M8.4 13.3l7.2 4.4"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Lien copié</div>
+
+  <script>
+    const SITE_URL = window.location.href;
+
+    const glassBar = document.getElementById("glassBar");
+    const toggleBtn = document.getElementById("toggleBtn");
+    const shareBtn = document.getElementById("shareBtn");
+    const toast = document.getElementById("toast");
+
+    let isMinimized = false;
+    let toastTimer = null;
+
+    function setMinimized(value) {
+      isMinimized = value;
+      glassBar.classList.toggle("is-minimized", isMinimized);
+
+      toggleBtn.setAttribute(
+        "aria-label",
+        isMinimized ? "Afficher la barre" : "Minimiser la barre"
+      );
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("is-visible");
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("is-visible");
+      }, 1600);
+    }
+
+    toggleBtn.addEventListener("click", () => {
+      setMinimized(!isMinimized);
+    });
+
+    shareBtn.addEventListener("click", async () => {
+      const shareData = {
+        title: "CV - Laetitia Réali",
+        text: "Voir le CV de Laetitia Réali",
+        url: SITE_URL
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+          return;
+        }
+
+        await navigator.clipboard.writeText(SITE_URL);
+        showToast("Lien copié");
+      } catch {
+        try {
+          await navigator.clipboard.writeText(SITE_URL);
+          showToast("Lien copié");
+        } catch {
+          showToast("Partage indisponible");
+        }
+      }
+    });
+  </script>
+</body>
+</html>
