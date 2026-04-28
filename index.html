@@ -7,14 +7,31 @@
 
   <style>
     :root {
-      --bg: rgba(18, 24, 30, 0.74);
-      --bg-min: rgba(18, 24, 30, 0.86);
-      --border: rgba(255, 255, 255, 0.18);
-      --button: rgba(255, 255, 255, 0.13);
-      --button-hover: rgba(255, 255, 255, 0.22);
+      --bg: rgba(45, 50, 55, 0.58);
+      --bg-min: rgba(45, 50, 55, 0.72);
+      --border: rgba(255, 255, 255, 0.16);
+      --button: rgba(255, 255, 255, 0.12);
+      --button-hover: rgba(255, 255, 255, 0.20);
       --text: #ffffff;
-      --shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
-      --ease: cubic-bezier(.2, .8, .2, 1);
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --morph: cubic-bezier(.16, 1, .3, 1);
+
+      --btn-size: 46px;
+      --share-width: 126px;
+      --bar-gap: 8px;
+      --bar-padding: 6px;
+
+      --bar-width: calc(
+        var(--btn-size) +
+        var(--btn-size) +
+        var(--share-width) +
+        (var(--bar-gap) * 2) +
+        (var(--bar-padding) * 2)
+      );
+
+      --bar-min-width: calc(var(--btn-size) + (var(--bar-padding) * 2));
+      --left-resting: calc(14px + env(safe-area-inset-left));
+      --bar-move-left: calc(-50vw + var(--left-resting) + (var(--bar-min-width) / 2));
     }
 
     * {
@@ -29,12 +46,53 @@
       margin: 0;
       overflow: hidden;
       background: #050607;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
     }
 
     body {
       position: fixed;
       inset: 0;
+    }
+
+    .loader {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: #fff;
+      background: #050607;
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .loader.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255, 255, 255, 0.16);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: spin 850ms linear infinite;
+    }
+
+    .loader-text {
+      font-size: 15px;
+      letter-spacing: -0.1px;
+      opacity: 0.88;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .pdf-viewer {
@@ -59,28 +117,34 @@
     }
 
     .glass-bar {
+      position: relative;
       pointer-events: auto;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      width: 204px;
-      height: 58px;
-      padding: 6px;
+      gap: var(--bar-gap);
+      width: var(--bar-width);
+      height: calc(var(--btn-size) + (var(--bar-padding) * 2));
+      padding: var(--bar-padding);
       border-radius: 999px;
       border: 1px solid var(--border);
       color: var(--text);
       background: var(--bg);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(16px) saturate(140%);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
       overflow: hidden;
+      transform: translateX(0) scale(1);
+      transform-origin: center center;
       transition:
-        width 260ms var(--ease),
-        background 260ms ease,
-        box-shadow 260ms ease,
-        transform 260ms var(--ease);
-      will-change: width, transform;
+        width 560ms var(--morph),
+        background 420ms ease,
+        box-shadow 560ms var(--morph),
+        transform 560ms var(--morph),
+        border-color 420ms ease,
+        backdrop-filter 560ms var(--morph),
+        -webkit-backdrop-filter 560ms var(--morph);
+      will-change: width, transform, filter;
     }
 
     .glass-bar::before {
@@ -89,88 +153,173 @@
       inset: 1px;
       border-radius: inherit;
       pointer-events: none;
-      background: linear-gradient(
-        135deg,
-        rgba(255,255,255,0.22),
-        rgba(255,255,255,0.04) 45%,
-        rgba(255,255,255,0.13)
-      );
-      opacity: 0.8;
+      background:
+        radial-gradient(circle at 22% 18%, rgba(255,255,255,0.28), rgba(255,255,255,0.04) 36%, transparent 62%),
+        linear-gradient(
+          180deg,
+          rgba(255,255,255,0.18),
+          rgba(255,255,255,0.04) 48%,
+          rgba(255,255,255,0.09)
+        );
+      opacity: 0.78;
+      transition:
+        opacity 420ms ease,
+        transform 560ms var(--morph),
+        filter 560ms var(--morph);
+    }
+
+    .glass-bar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        inset 0 -1px 0 rgba(0,0,0,0.22);
     }
 
     .glass-bar.is-minimized {
-      width: 58px;
+      width: var(--bar-min-width);
       background: var(--bg-min);
-      transform: translateY(1px);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.36);
+      transform: translateX(var(--bar-move-left)) scale(1);
+      backdrop-filter: blur(26px) saturate(190%);
+      -webkit-backdrop-filter: blur(26px) saturate(190%);
     }
 
     .bar-btn {
       position: relative;
       z-index: 1;
-      width: 46px;
-      height: 46px;
-      flex: 0 0 46px;
+      width: var(--btn-size);
+      height: var(--btn-size);
+      flex: 0 0 var(--btn-size);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.13);
       border-radius: 50%;
       color: var(--text);
       background: var(--button);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.14),
+        0 1px 2px rgba(0,0,0,0.12);
       cursor: pointer;
       text-decoration: none;
       outline: none;
       transition:
-        opacity 180ms ease,
-        transform 220ms var(--ease),
-        background 160ms ease;
+        opacity 220ms ease,
+        transform 520ms var(--morph),
+        background 180ms ease,
+        border-color 180ms ease,
+        filter 520ms var(--morph);
     }
 
     .bar-btn:hover {
       background: var(--button-hover);
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
     .bar-btn:active {
-      transform: scale(0.92);
+      transform: scale(0.9);
     }
 
     .bar-btn svg {
-      width: 22px;
-      height: 22px;
+      width: 23px;
+      height: 23px;
       display: block;
       stroke: currentColor;
-      stroke-width: 2.4;
+      stroke-width: 1.9;
       fill: none;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
+    #toggleBtn {
+      position: relative;
+    }
+
+    .toggle-svg {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 23px;
+      height: 23px;
+      transform-origin: center;
+      transition:
+        opacity 220ms ease,
+        transform 520ms var(--morph),
+        filter 520ms var(--morph);
+    }
+
+    .toggle-minus {
+      opacity: 1;
+      transform: translate(-50%, -50%) rotate(0deg) scale(1);
+      filter: blur(0);
+    }
+
+    .toggle-plus {
+      opacity: 0;
+      transform: translate(-50%, -50%) rotate(-90deg) scale(0.55);
+      filter: blur(4px);
+    }
+
+    .glass-bar.is-minimized .toggle-minus {
+      opacity: 0;
+      transform: translate(-50%, -50%) rotate(90deg) scale(0.55);
+      filter: blur(4px);
+    }
+
+    .glass-bar.is-minimized .toggle-plus {
+      opacity: 1;
+      transform: translate(-50%, -50%) rotate(0deg) scale(1);
+      filter: blur(0);
+    }
+
     .bar-action {
       opacity: 1;
-      transform: scale(1);
+      transform: translateX(0) scale(1);
+      filter: blur(0);
     }
 
     .glass-bar.is-minimized .bar-action {
       opacity: 0;
-      transform: scale(0.65);
+      transform: translateX(-18px) scale(0.52);
+      filter: blur(5px);
       pointer-events: none;
-    }
-
-    .glass-bar.is-minimized .bar-action {
       position: absolute;
     }
 
-    .toggle-icon-plus {
-      opacity: 0;
-      transform: scale(0.65);
-      transform-origin: center;
-      transition: opacity 160ms ease, transform 220ms var(--ease);
+    .share-primary {
+      width: var(--share-width);
+      flex-basis: var(--share-width);
+      border-radius: 999px;
+      gap: 7px;
+      color: #050607;
+      background: rgba(255, 255, 255, 0.96);
+      border-color: rgba(255, 255, 255, 0.72);
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -0.2px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.82),
+        0 8px 22px rgba(255,255,255,0.16),
+        0 2px 8px rgba(0,0,0,0.22);
     }
 
-    .glass-bar.is-minimized .toggle-icon-plus {
-      opacity: 1;
-      transform: scale(1);
+    .share-primary:hover {
+      background: #ffffff;
+      border-color: #ffffff;
+    }
+
+    .share-primary svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2;
+    }
+
+    .share-text {
+      line-height: 1;
+      white-space: nowrap;
     }
 
     .toast {
@@ -178,15 +327,17 @@
       left: 50%;
       bottom: calc(88px + env(safe-area-inset-bottom));
       z-index: 30;
+      max-width: calc(100% - 28px);
       padding: 10px 14px;
       border-radius: 999px;
       color: #fff;
       font-size: 14px;
-      background: rgba(15, 18, 22, 0.84);
+      text-align: center;
+      background: rgba(18, 20, 23, 0.74);
       border: 1px solid rgba(255,255,255,0.12);
       box-shadow: 0 12px 34px rgba(0,0,0,0.28);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
       opacity: 0;
       pointer-events: none;
       transform: translateX(-50%) translateY(8px);
@@ -199,64 +350,93 @@
     }
 
     @media (max-width: 520px) {
+      :root {
+        --btn-size: 44px;
+        --share-width: 120px;
+        --bar-gap: 7px;
+        --bar-padding: 5px;
+      }
+
       .bar-position {
         bottom: calc(14px + env(safe-area-inset-bottom));
       }
 
-      .glass-bar {
-        width: 188px;
-        height: 56px;
-        gap: 7px;
-        padding: 5px;
+      .bar-btn svg,
+      .toggle-svg {
+        width: 22px;
+        height: 22px;
       }
 
-      .glass-bar.is-minimized {
-        width: 56px;
+      .share-primary {
+        font-size: 14px;
       }
 
-      .bar-btn {
-        width: 44px;
-        height: 44px;
-        flex-basis: 44px;
+      .share-primary svg {
+        width: 19px;
+        height: 19px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      :root {
+        --btn-size: 42px;
+        --share-width: 112px;
+        --bar-gap: 6px;
+        --bar-padding: 5px;
       }
 
-      .bar-btn svg {
-        width: 21px;
-        height: 21px;
+      .share-primary {
+        font-size: 13px;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .glass-bar,
+      .glass-bar::before,
+      .glass-bar::after,
       .bar-btn,
-      .toggle-icon-plus,
+      .bar-action,
+      .toggle-svg,
       .toast {
         transition: none;
+      }
+
+      .spinner {
+        animation: none;
       }
     }
 
     @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
       .glass-bar,
       .toast {
-        background: rgba(18, 24, 30, 0.92);
+        background: rgba(45, 50, 55, 0.92);
       }
     }
   </style>
 </head>
 
 <body>
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Préparation du CV...</div>
+  </div>
+
   <iframe
     class="pdf-viewer"
-    src="public/Laetitia-Reali-ESMS.pdf#toolbar=0&navpanes=0&scrollbar=1"
+    id="pdfViewer"
     title="CV PDF"
   ></iframe>
 
   <div class="bar-position">
     <div class="glass-bar" id="glassBar">
       <button class="bar-btn" id="toggleBtn" type="button" aria-label="Minimiser la barre">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 12h12"></path>
-          <path class="toggle-icon-plus" d="M12 6v12"></path>
+        <svg class="toggle-svg toggle-minus" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <svg class="toggle-svg toggle-plus" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
         </svg>
       </button>
 
@@ -267,20 +447,19 @@
         aria-label="Télécharger le PDF"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 4v10"></path>
-          <path d="M8 10l4 4 4-4"></path>
-          <path d="M6 20h12"></path>
+          <path d="M12 4.5v10.2"></path>
+          <path d="M8.6 11.4L12 14.8l3.4-3.4"></path>
+          <path d="M6.2 19.5h11.6"></path>
         </svg>
       </a>
 
-      <button class="bar-btn bar-action" id="shareBtn" type="button" aria-label="Partager le site">
+      <button class="bar-btn bar-action share-primary" id="shareBtn" type="button" aria-label="Partager le site">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="18" cy="5" r="2.7"></circle>
-          <circle cx="6" cy="12" r="2.7"></circle>
-          <circle cx="18" cy="19" r="2.7"></circle>
-          <path d="M8.4 10.7l7.2-4.4"></path>
-          <path d="M8.4 13.3l7.2 4.4"></path>
+          <path d="M12 5v10.5"></path>
+          <path d="M8.4 8.6L12 5l3.6 3.6"></path>
+          <path d="M6.5 13.5v4.2c0 .9.6 1.5 1.5 1.5h8c.9 0 1.5-.6 1.5-1.5v-4.2"></path>
         </svg>
+        <span class="share-text">Partager</span>
       </button>
     </div>
   </div>
@@ -288,8 +467,11 @@
   <div class="toast" id="toast">Lien copié</div>
 
   <script>
-    const SITE_URL = window.location.href;
+    const SITE_URL = "https://laetitiareali.github.io/";
+    const PDF_URL = "public/Laetitia-Reali-ESMS.pdf";
 
+    const loader = document.getElementById("loader");
+    const pdfViewer = document.getElementById("pdfViewer");
     const glassBar = document.getElementById("glassBar");
     const toggleBtn = document.getElementById("toggleBtn");
     const shareBtn = document.getElementById("shareBtn");
@@ -297,6 +479,10 @@
 
     let isMinimized = false;
     let toastTimer = null;
+
+    function hideLoader() {
+      loader.classList.add("is-hidden");
+    }
 
     function setMinimized(value) {
       isMinimized = value;
@@ -315,7 +501,17 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => {
         toast.classList.remove("is-visible");
-      }, 1600);
+      }, 2400);
+    }
+
+    function loadPdf() {
+      pdfViewer.src = `${PDF_URL}#toolbar=0&navpanes=0&scrollbar=1`;
+
+      pdfViewer.addEventListener("load", () => {
+        setTimeout(hideLoader, 300);
+      });
+
+      setTimeout(hideLoader, 1800);
     }
 
     toggleBtn.addEventListener("click", () => {
@@ -346,6 +542,8 @@
         }
       }
     });
+
+    loadPdf();
   </script>
 </body>
 </html>
