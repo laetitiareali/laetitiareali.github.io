@@ -47,9 +47,8 @@
       height: 100%;
       margin: 0;
       overflow: hidden;
-      background: #070707;
+      background: #050607;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
-      touch-action: none;
       overscroll-behavior: none;
     }
 
@@ -102,20 +101,52 @@
     .pdf-shell {
       position: fixed;
       inset: 0;
+      z-index: 1;
       width: 100%;
       height: 100%;
-      overflow: hidden;
+      overflow: auto;
       background: #050607;
-      touch-action: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
     }
 
-    .pdf-viewer {
+    .pdf-stage {
+      min-width: 100%;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+
+    .pdf-page {
       display: block;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      background: #050607;
-      touch-action: auto;
+      max-width: none;
+      background: #ffffff;
+      border-radius: 0;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+    }
+
+    .pdf-error {
+      max-width: 340px;
+      padding: 18px;
+      border-radius: 24px;
+      color: rgba(255, 255, 255, 0.88);
+      text-align: center;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .pdf-error strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #fff;
+      font-size: 17px;
     }
 
     .bar-position {
@@ -345,16 +376,14 @@
       white-space: nowrap;
     }
 
-    .toast {
+    .toast,
+    .zoom-pill {
       position: fixed;
       left: 50%;
-      bottom: calc(88px + env(safe-area-inset-bottom));
       z-index: 30;
       max-width: calc(100% - 28px);
-      padding: 10px 14px;
       border-radius: 999px;
       color: #fff;
-      font-size: 14px;
       text-align: center;
       background: rgba(18, 20, 23, 0.74);
       border: 1px solid rgba(255,255,255,0.12);
@@ -363,37 +392,26 @@
       -webkit-backdrop-filter: blur(18px) saturate(160%);
       opacity: 0;
       pointer-events: none;
-      transform: translateX(-50%) translateY(8px);
       transition: opacity 180ms ease, transform 180ms ease;
     }
 
-    .toast.is-visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
+    .toast {
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      padding: 10px 14px;
+      font-size: 14px;
+      transform: translateX(-50%) translateY(8px);
     }
 
     .zoom-pill {
-      position: fixed;
-      left: 50%;
       top: calc(14px + env(safe-area-inset-top));
-      z-index: 25;
-      transform: translateX(-50%) translateY(-8px);
-      opacity: 0;
-      pointer-events: none;
       padding: 8px 12px;
-      border-radius: 999px;
-      color: #fff;
       font-size: 13px;
       font-weight: 600;
       letter-spacing: -0.15px;
-      background: rgba(18, 20, 23, 0.62);
-      border: 1px solid rgba(255,255,255,0.12);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.22);
-      backdrop-filter: blur(18px) saturate(160%);
-      -webkit-backdrop-filter: blur(18px) saturate(160%);
-      transition: opacity 180ms ease, transform 180ms ease;
+      transform: translateX(-50%) translateY(-8px);
     }
 
+    .toast.is-visible,
     .zoom-pill.is-visible {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
@@ -593,11 +611,14 @@
       .glass-bar,
       .toast,
       .zoom-pill,
-      .ios-modal {
+      .ios-modal,
+      .pdf-error {
         background: rgba(45, 50, 55, 0.92);
       }
     }
   </style>
+
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 
 <body>
@@ -607,11 +628,7 @@
   </div>
 
   <div class="pdf-shell" id="pdfShell">
-    <iframe
-      class="pdf-viewer"
-      id="pdfViewer"
-      title="CV PDF"
-    ></iframe>
+    <div class="pdf-stage" id="pdfStage"></div>
   </div>
 
   <div class="modal-overlay" id="zoomModal" role="dialog" aria-modal="true" aria-labelledby="zoomModalTitle">
@@ -694,10 +711,25 @@
 
   <script>
     const SITE_URL = "https://laetitiareali.github.io/";
-    const PDF_URL = "public/Laetitia-Reali-ESMS.pdf";
+
+    const LOCAL_PDF_URL = "public/Laetitia-Reali-ESMS.pdf";
+    const GITHUB_RAW_PDF_URL = "https://raw.githubusercontent.com/laetitiareali/laetitiareali.github.io/main/public/Laetitia-Reali-ESMS.pdf";
+
+    const PDF_URL =
+      window.location.protocol === "file:"
+        ? GITHUB_RAW_PDF_URL
+        : LOCAL_PDF_URL;
+
+    const DOWNLOAD_URL =
+      window.location.protocol === "file:"
+        ? GITHUB_RAW_PDF_URL
+        : LOCAL_PDF_URL;
+
+    const PDF_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
     const loader = document.getElementById("loader");
-    const pdfViewer = document.getElementById("pdfViewer");
+    const pdfShell = document.getElementById("pdfShell");
+    const pdfStage = document.getElementById("pdfStage");
     const glassBar = document.getElementById("glassBar");
     const toggleBtn = document.getElementById("toggleBtn");
     const shareBtn = document.getElementById("shareBtn");
@@ -707,42 +739,53 @@
     const zoomPill = document.getElementById("zoomPill");
     const zoomModal = document.getElementById("zoomModal");
     const modalOkBtn = document.getElementById("modalOkBtn");
+    const downloadBtn = document.querySelector("a[download]");
+
+    if (downloadBtn) {
+      downloadBtn.href = DOWNLOAD_URL;
+    }
 
     let isMinimized = false;
     let toastTimer = null;
     let zoomPillTimer = null;
-    let hasLoadedOnce = false;
+    let zoomModalTimer = null;
+    let hasZoomModalOpened = false;
 
+    let pdfDocument = null;
+    let baseFitScale = 1;
     let currentZoomPercent = 100;
+    let renderVersion = 0;
+    let resizeTimer = null;
+    let isRendering = false;
 
     const MIN_ZOOM = 75;
-    const MAX_ZOOM = 175;
+    const MAX_ZOOM = 250;
     const ZOOM_STEP = 25;
 
     function hideLoader() {
       loader.classList.add("is-hidden");
     }
 
+    function showLoader() {
+      loader.classList.remove("is-hidden");
+    }
+
     function clamp(value, min, max) {
       return Math.min(Math.max(value, min), max);
     }
 
-    function getPdfSrc(zoomPercent) {
-      const base = `${PDF_URL}#toolbar=0&navpanes=0&scrollbar=1`;
-
-      if (zoomPercent === 100) {
-        return `${base}&view=Fit&zoom=page-fit`;
+    function safeLocalStorageGet(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
       }
-
-      return `${base}&zoom=${zoomPercent}`;
     }
 
-    function setPdfSrc(src) {
-      pdfViewer.src = "about:blank";
-
-      setTimeout(() => {
-        pdfViewer.src = src;
-      }, 40);
+    function safeLocalStorageSet(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch {}
     }
 
     function setMinimized(value) {
@@ -780,48 +823,170 @@
     }
 
     function updateZoomButtons() {
-      zoomOutBtn.disabled = currentZoomPercent <= MIN_ZOOM;
-      zoomInBtn.disabled = currentZoomPercent >= MAX_ZOOM;
+      zoomOutBtn.disabled = currentZoomPercent <= MIN_ZOOM || isRendering;
+      zoomInBtn.disabled = currentZoomPercent >= MAX_ZOOM || isRendering;
     }
 
-    function setZoom(zoomPercent) {
+    function showPdfError() {
+      pdfStage.innerHTML = `
+        <div class="pdf-error">
+          <strong>Impossible d’afficher le PDF</strong>
+          <span>Ouvrez la page avec un serveur local ou depuis GitHub Pages.</span>
+        </div>
+      `;
+    }
+
+    async function calculateFitScale() {
+      if (!pdfDocument) return;
+
+      const firstPage = await pdfDocument.getPage(1);
+      const viewport = firstPage.getViewport({ scale: 1 });
+
+      const availableWidth = Math.max(240, pdfShell.clientWidth);
+      const availableHeight = Math.max(320, pdfShell.clientHeight);
+
+      const fitWidth = availableWidth / viewport.width;
+      const fitHeight = availableHeight / viewport.height;
+
+      baseFitScale = Math.max(0.1, Math.min(fitWidth, fitHeight));
+    }
+
+    async function renderPdf() {
+      if (!pdfDocument) return;
+
+      const version = ++renderVersion;
+      isRendering = true;
+      updateZoomButtons();
+
+      const zoomScale = currentZoomPercent / 100;
+      const finalScale = baseFitScale * zoomScale;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+
+      const previousCenterX = pdfShell.scrollLeft + pdfShell.clientWidth / 2;
+      const previousCenterY = pdfShell.scrollTop + pdfShell.clientHeight / 2;
+      const previousScrollWidth = pdfShell.scrollWidth || 1;
+      const previousScrollHeight = pdfShell.scrollHeight || 1;
+
+      pdfStage.innerHTML = "";
+
+      try {
+        for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber++) {
+          if (version !== renderVersion) return;
+
+          const page = await pdfDocument.getPage(pageNumber);
+          const viewport = page.getViewport({ scale: finalScale });
+
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d", { alpha: false });
+
+          if (!context) {
+            throw new Error("Canvas indisponible");
+          }
+
+          canvas.className = "pdf-page";
+          canvas.width = Math.floor(viewport.width * dpr);
+          canvas.height = Math.floor(viewport.height * dpr);
+          canvas.style.width = `${viewport.width}px`;
+          canvas.style.height = `${viewport.height}px`;
+
+          context.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+          pdfStage.appendChild(canvas);
+
+          await page.render({
+            canvasContext: context,
+            viewport
+          }).promise;
+        }
+
+        requestAnimationFrame(() => {
+          if (version !== renderVersion) return;
+
+          if (currentZoomPercent === 100) {
+            pdfShell.scrollLeft = Math.max(0, (pdfShell.scrollWidth - pdfShell.clientWidth) / 2);
+            pdfShell.scrollTop = Math.max(0, (pdfShell.scrollHeight - pdfShell.clientHeight) / 2);
+          } else {
+            const ratioX = previousCenterX / previousScrollWidth;
+            const ratioY = previousCenterY / previousScrollHeight;
+
+            pdfShell.scrollLeft = pdfShell.scrollWidth * ratioX - pdfShell.clientWidth / 2;
+            pdfShell.scrollTop = pdfShell.scrollHeight * ratioY - pdfShell.clientHeight / 2;
+          }
+        });
+      } catch (error) {
+        console.error("Erreur rendu PDF :", error);
+        showPdfError();
+      } finally {
+        if (version === renderVersion) {
+          isRendering = false;
+          updateZoomButtons();
+        }
+      }
+    }
+
+    async function setZoom(zoomPercent) {
       currentZoomPercent = clamp(zoomPercent, MIN_ZOOM, MAX_ZOOM);
 
-      setPdfSrc(getPdfSrc(currentZoomPercent));
-      updateZoomButtons();
       showZoomPill();
+
+      if (currentZoomPercent === 100) {
+        await calculateFitScale();
+      }
+
+      await renderPdf();
     }
 
     function showZoomModal() {
-      if (localStorage.getItem("zoomInfoSeen") === "1") return;
+      if (hasZoomModalOpened) return;
+      if (safeLocalStorageGet("zoomInfoSeen") === "1") return;
 
-      setTimeout(() => {
+      hasZoomModalOpened = true;
+
+      clearTimeout(zoomModalTimer);
+      zoomModalTimer = setTimeout(() => {
+        if (safeLocalStorageGet("zoomInfoSeen") === "1") return;
         zoomModal.classList.add("is-visible");
       }, 650);
     }
 
     function closeZoomModal() {
+      hasZoomModalOpened = true;
+      clearTimeout(zoomModalTimer);
       zoomModal.classList.remove("is-visible");
-      localStorage.setItem("zoomInfoSeen", "1");
+      safeLocalStorageSet("zoomInfoSeen", "1");
     }
 
-    function loadPdf() {
-      currentZoomPercent = 100;
-      updateZoomButtons();
-      setPdfSrc(getPdfSrc(100));
+    async function loadPdf() {
+      try {
+        showLoader();
 
-      pdfViewer.addEventListener("load", () => {
-        if (hasLoadedOnce) return;
+        if (!window.pdfjsLib) {
+          throw new Error("PDF.js non chargé");
+        }
 
-        hasLoadedOnce = true;
-        setTimeout(hideLoader, 300);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
+
+        const loadingTask = pdfjsLib.getDocument({
+          url: PDF_URL,
+          disableAutoFetch: false,
+          disableStream: false
+        });
+
+        pdfDocument = await loadingTask.promise;
+
+        currentZoomPercent = 100;
+        updateZoomButtons();
+
+        await calculateFitScale();
+        await renderPdf();
+
+        setTimeout(hideLoader, 260);
         showZoomModal();
-      });
-
-      setTimeout(() => {
+      } catch (error) {
+        console.error("Erreur chargement PDF :", error);
         hideLoader();
-        showZoomModal();
-      }, 1800);
+        showPdfError();
+      }
     }
 
     toggleBtn.addEventListener("click", () => {
@@ -829,10 +994,12 @@
     });
 
     zoomOutBtn.addEventListener("click", () => {
+      if (isRendering) return;
       setZoom(currentZoomPercent - ZOOM_STEP);
     });
 
     zoomInBtn.addEventListener("click", () => {
+      if (isRendering) return;
       setZoom(currentZoomPercent + ZOOM_STEP);
     });
 
@@ -857,16 +1024,29 @@
           return;
         }
 
-        await navigator.clipboard.writeText(SITE_URL);
-        showToast("Lien copié");
-      } catch {
-        try {
+        if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(SITE_URL);
           showToast("Lien copié");
-        } catch {
-          showToast("Partage indisponible");
         }
+      } catch {
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(SITE_URL);
+            showToast("Lien copié");
+          }
+        } catch {}
       }
+    });
+
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+
+      resizeTimer = setTimeout(async () => {
+        if (!pdfDocument || currentZoomPercent !== 100 || isRendering) return;
+
+        await calculateFitScale();
+        await renderPdf();
+      }, 180);
     });
 
     document.addEventListener("gesturestart", function (event) {
@@ -881,17 +1061,7 @@
       event.preventDefault();
     });
 
-    document.addEventListener(
-      "touchmove",
-      function (event) {
-        if (!event.target.closest(".pdf-shell")) {
-          event.preventDefault();
-        }
-      },
-      { passive: false }
-    );
-
-    loadPdf();
+    window.addEventListener("load", loadPdf);
   </script>
 </body>
 </html>
