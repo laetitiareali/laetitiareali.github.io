@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
   <title>CV - Laetitia Réali</title>
 
   <style>
@@ -47,6 +50,8 @@
       overflow: hidden;
       background: #050607;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
+      touch-action: none;
+      overscroll-behavior: none;
     }
 
     body {
@@ -102,6 +107,7 @@
       height: 100%;
       border: 0;
       background: #050607;
+      touch-action: auto;
     }
 
     .bar-position {
@@ -114,6 +120,7 @@
       justify-content: center;
       padding: 0 14px;
       pointer-events: none;
+      touch-action: manipulation;
     }
 
     .glass-bar {
@@ -136,6 +143,7 @@
       overflow: hidden;
       transform: translateX(0) scale(1);
       transform-origin: center center;
+      touch-action: manipulation;
       transition:
         width 560ms var(--morph),
         background 420ms ease,
@@ -207,6 +215,7 @@
       cursor: pointer;
       text-decoration: none;
       outline: none;
+      touch-action: manipulation;
       transition:
         opacity 220ms ease,
         transform 520ms var(--morph),
@@ -542,6 +551,28 @@
         }
       }
     });
+
+    document.addEventListener("gesturestart", function (event) {
+      event.preventDefault();
+    });
+
+    document.addEventListener("gesturechange", function (event) {
+      event.preventDefault();
+    });
+
+    document.addEventListener("gestureend", function (event) {
+      event.preventDefault();
+    });
+
+    document.addEventListener(
+      "touchmove",
+      function (event) {
+        if (!event.target.closest(".pdf-viewer")) {
+          event.preventDefault();
+        }
+      },
+      { passive: false }
+    );
 
     loadPdf();
   </script>
